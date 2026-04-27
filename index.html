@@ -176,13 +176,11 @@ ${transcript}`;
   document.getElementById('results').style.display = 'none';
   const loadingMsg = document.getElementById('loading-msg');
 
-  // ESCÁNER DE MODELOS: Va a probar uno por uno hasta que uno responda.
+  // ESCÁNER ACTUALIZADO A LAS VERSIONES ACTIVAS
   const urlsToTry = [
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${GEMINI_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${GEMINI_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${GEMINI_KEY}`,
-    `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=${GEMINI_KEY}`
   ];
 
   let rawContent = null;
@@ -194,7 +192,6 @@ ${transcript}`;
       
       const payload = {
         contents: [{ parts: [{ text: fullPrompt }] }],
-        // Eliminado responseMimeType para máxima compatibilidad con cualquier cuenta.
         generationConfig: { temperature: 0.7 }
       };
 
@@ -224,7 +221,7 @@ ${transcript}`;
 
   try {
     if (!rawContent) {
-      throw new Error("La API rechazó todas las versiones posibles. Revisá si tu API Key sigue activa. Último error: " + lastError);
+      throw new Error("La API rechazó las conexiones. Revisá si tu API Key sigue activa. Último error: " + lastError);
     }
 
     loadingMsg.textContent = "Procesando resultados...";
