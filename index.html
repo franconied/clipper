@@ -104,7 +104,7 @@
     <button class="btn-main" onclick="analyze()">⚡ ANALIZAR CLIPS</button>
   </div>
 
-  <div id="loading"><div class="spinner"></div><div class="loading-text" id="loading-msg">Iniciando conexión...</div></div>
+  <div id="loading"><div class="spinner"></div><div class="loading-text" id="loading-msg">Iniciando sistema...</div></div>
   <div id="error-box"></div>
   
   <div id="results">
@@ -176,69 +176,71 @@ ${transcript}`;
   document.getElementById('results').style.display = 'none';
   const loadingMsg = document.getElementById('loading-msg');
 
-  // ESCÁNER ACTUALIZADO A LAS VERSIONES ACTIVAS
-  const urlsToTry = [
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`,
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent?key=${GEMINI_KEY}`
-  ];
+  try {
+    // PASO 1: MODO DIAGNÓSTICO (Listar modelos disponibles en la API Key)
+    loadingMsg.textContent = "Escaneando modelos permitidos en tu API Key...";
+    const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_KEY}`);
+    
+    if (!listResp.ok) {
+       const err = await listResp.json();
+       throw new Error("API Key inválida o rechazada por Google. Detalle: " + (err.error?.message || "Desconocido"));
+    }
 
-  let rawContent = null;
-  let lastError = null;
+    const listData = await listResp.json();
+    
+    // PASO 2: Encontrar el mejor modelo disponible que permita generar contenido
+    const validModels = listData.models.filter(m => 
+      m.supportedGenerationMethods?.includes("generateContent") && 
+      m.name.includes("gemini")
+    );
 
-  for (const url of urlsToTry) {
-    try {
-      loadingMsg.textContent = `Probando conexión: ${url.split('models/')[1].split(':')[0]}...`;
-      
-      const payload = {
+    if (validModels.length === 0) {
+      throw new Error("Tu API Key está activa pero no tiene permisos para usar modelos de generación de texto Gemini.");
+    }
+
+    // Buscamos priorizar cualquier versión "flash", si no hay, agarramos el primero de la lista.
+    let selectedModel = validModels.find(m => m.name.includes("flash") && !m.name.includes("tuning"))?.name;
+    if (!selectedModel) {
+      selectedModel = validModels[0].name; 
+    }
+
+    loadingMsg.textContent = `Conectando con modelo autorizado: ${selectedModel.replace('models/', '')}...`;
+    
+    // PASO 3: Llamar al endpoint correcto dinámicamente
+    const endpoint = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${GEMINI_KEY}`;
+    
+    const resp = await fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
         contents: [{ parts: [{ text: fullPrompt }] }],
         generationConfig: { temperature: 0.7 }
-      };
+      })
+    });
 
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      if (resp.ok) {
-        const data = await resp.json();
-        rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawContent) {
-          console.log("¡Conexión exitosa con:", url);
-          break; // Salió bien, rompemos el loop
-        }
-      } else {
-        const errData = await resp.json();
-        lastError = errData?.error?.message || `Fallo al conectar`;
-        console.warn(`Fallback: Falló ${url.split('models/')[1].split(':')[0]}`, lastError);
-      }
-    } catch (e) {
-      lastError = e.message;
-      console.warn(`Error de red con endpoint`, e);
-    }
-  }
-
-  try {
-    if (!rawContent) {
-      throw new Error("La API rechazó las conexiones. Revisá si tu API Key sigue activa. Último error: " + lastError);
+    if (!resp.ok) {
+      const errData = await resp.json();
+      throw new Error(errData?.error?.message || "Error interno al solicitar el análisis.");
     }
 
-    loadingMsg.textContent = "Procesando resultados...";
+    const data = await resp.json();
+    let rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!rawContent) throw new Error("La IA analizó el texto pero no devolvió resultados.");
 
-    // Extractor de JSON a prueba de balas
+    loadingMsg.textContent = "Procesando clips...";
+
+    // Extractor seguro de JSON
     let cleanJson = rawContent;
     const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
-    if (jsonMatch) {
-      cleanJson = jsonMatch[0];
-    }
+    if (jsonMatch) cleanJson = jsonMatch[0];
     
     const result = JSON.parse(cleanJson);
     renderResults(result, progLabel, character);
 
   } catch(e) {
-    console.error("Error completo:", e);
-    showError("Error al procesar los datos: " + e.message);
+    console.error("Error completo de sistema:", e);
+    showError(e.message);
   } finally {
     document.querySelector('.btn-main').disabled = false;
     document.getElementById('loading').style.display = 'none';
