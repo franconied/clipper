@@ -176,30 +176,29 @@ ${transcript}`;
   document.getElementById('results').style.display = 'none';
   const loadingMsg = document.getElementById('loading-msg');
 
-  // Sistema de contingencia: Intenta conectar con estos modelos en orden si alguno falla.
-  const modelsToTry = [
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-latest',
-    'gemini-1.5-pro'
+  // ESCÁNER DE MODELOS: Va a probar uno por uno hasta que uno responda.
+  const urlsToTry = [
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-001:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-002:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro:generateContent?key=${GEMINI_KEY}`,
+    `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_KEY}`
   ];
 
   let rawContent = null;
   let lastError = null;
 
-  for (const model of modelsToTry) {
+  for (const url of urlsToTry) {
     try {
-      loadingMsg.textContent = `Conectando con ${model}...`;
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
+      loadingMsg.textContent = `Probando conexión: ${url.split('models/')[1].split(':')[0]}...`;
       
       const payload = {
         contents: [{ parts: [{ text: fullPrompt }] }],
-        generationConfig: { 
-          temperature: 0.7,
-          responseMimeType: "application/json" // Formato oficial validado para v1beta
-        }
+        // Eliminado responseMimeType para máxima compatibilidad con cualquier cuenta.
+        generationConfig: { temperature: 0.7 }
       };
 
-      const resp = await fetch(endpoint, {
+      const resp = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -208,26 +207,29 @@ ${transcript}`;
       if (resp.ok) {
         const data = await resp.json();
         rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (rawContent) break; // Conexión exitosa, salimos del loop
+        if (rawContent) {
+          console.log("¡Conexión exitosa con:", url);
+          break; // Salió bien, rompemos el loop
+        }
       } else {
         const errData = await resp.json();
-        lastError = errData?.error?.message || `Fallo en el modelo ${model}`;
-        console.warn(`Fallback activado: Falló ${model}`, lastError);
+        lastError = errData?.error?.message || `Fallo al conectar`;
+        console.warn(`Fallback: Falló ${url.split('models/')[1].split(':')[0]}`, lastError);
       }
     } catch (e) {
       lastError = e.message;
-      console.warn(`Error de red con ${model}`, e);
+      console.warn(`Error de red con endpoint`, e);
     }
   }
 
   try {
     if (!rawContent) {
-      throw new Error("La API rechazó la conexión en todos los modelos. Detalle: " + lastError);
+      throw new Error("La API rechazó todas las versiones posibles. Revisá si tu API Key sigue activa. Último error: " + lastError);
     }
 
     loadingMsg.textContent = "Procesando resultados...";
 
-    // Extracción ultra segura de JSON (por si viene con backticks o texto basura)
+    // Extractor de JSON a prueba de balas
     let cleanJson = rawContent;
     const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
