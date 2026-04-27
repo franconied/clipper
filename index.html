@@ -18,7 +18,9 @@
   .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
   .logo-text span { color: var(--accent); }
   .badge { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; }
-  .step-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .step-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; display: flex; justify-content: space-between; }
+  .btn-small { background: transparent; border: 1px solid var(--border); color: var(--muted); font-size: 10px; padding: 3px 8px; border-radius: 4px; cursor: pointer; }
+  .btn-small:hover { color: var(--accent2); border-color: var(--accent2); }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
   input[type="text"], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 10px 14px; outline: none; transition: border-color 0.2s; }
@@ -73,7 +75,10 @@
   </header>
 
   <div class="card">
-    <div class="step-label">Configuración</div>
+    <div class="step-label">
+      Configuración
+      <button class="btn-small" onclick="resetKey()">Cambiar API Key</button>
+    </div>
     <div style="margin-bottom:1rem;">
       <label>URL DEL PROGRAMA</label>
       <input type="text" id="yt-url" placeholder="https://www.youtube.com/watch?v=..." />
@@ -120,7 +125,23 @@
 </div>
 
 <script>
-const GEMINI_KEY = "AIzaSyBnrzYF9pjMkWth6SVYBbWth6crBwdezpw";
+let GEMINI_KEY = localStorage.getItem('gemini_clipper_key') || "";
+
+function resetKey() {
+  localStorage.removeItem('gemini_clipper_key');
+  GEMINI_KEY = "";
+  alert("API Key borrada de la memoria. Te pediremos una nueva en el próximo análisis.");
+}
+
+function ensureKey() {
+  if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
+    GEMINI_KEY = prompt("Pegá acá tu Google API Key para usar el Clipper:\n(Se guardará en tu navegador)");
+    if (GEMINI_KEY) {
+      localStorage.setItem('gemini_clipper_key', GEMINI_KEY.trim());
+    }
+  }
+  return GEMINI_KEY;
+}
 
 const PROGRAMS = {
   noticias: { label: "Solo Noticias", chars: ["Eleonora Perez Caressi","Santiago Do Rego"] },
@@ -155,6 +176,12 @@ function showError(msg) {
 
 async function analyze() {
   document.getElementById('error-box').style.display = 'none';
+  
+  if (!ensureKey()) {
+    showError('Necesitás ingresar una API Key válida para continuar.');
+    return;
+  }
+
   const transcript = document.getElementById('transcript').value.trim();
   if (!transcript) { showError('Pegá la transcripción antes de analizar.'); return; }
 
@@ -177,36 +204,30 @@ ${transcript}`;
   const loadingMsg = document.getElementById('loading-msg');
 
   try {
-    // PASO 1: MODO DIAGNÓSTICO (Listar modelos disponibles en la API Key)
     loadingMsg.textContent = "Escaneando modelos permitidos en tu API Key...";
     const listResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_KEY}`);
     
     if (!listResp.ok) {
        const err = await listResp.json();
-       throw new Error("API Key inválida o rechazada por Google. Detalle: " + (err.error?.message || "Desconocido"));
+       if(err.error?.message?.includes('API key')) resetKey();
+       throw new Error("API Key inválida o rechazada. Detalle: " + (err.error?.message || "Desconocido"));
     }
 
     const listData = await listResp.json();
-    
-    // PASO 2: Encontrar el mejor modelo disponible que permita generar contenido
     const validModels = listData.models.filter(m => 
       m.supportedGenerationMethods?.includes("generateContent") && 
       m.name.includes("gemini")
     );
 
     if (validModels.length === 0) {
-      throw new Error("Tu API Key está activa pero no tiene permisos para usar modelos de generación de texto Gemini.");
+      throw new Error("Tu API Key está activa pero no tiene permisos para usar modelos Gemini.");
     }
 
-    // Buscamos priorizar cualquier versión "flash", si no hay, agarramos el primero de la lista.
     let selectedModel = validModels.find(m => m.name.includes("flash") && !m.name.includes("tuning"))?.name;
-    if (!selectedModel) {
-      selectedModel = validModels[0].name; 
-    }
+    if (!selectedModel) selectedModel = validModels[0].name; 
 
     loadingMsg.textContent = `Conectando con modelo autorizado: ${selectedModel.replace('models/', '')}...`;
     
-    // PASO 3: Llamar al endpoint correcto dinámicamente
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/${selectedModel}:generateContent?key=${GEMINI_KEY}`;
     
     const resp = await fetch(endpoint, {
@@ -230,7 +251,6 @@ ${transcript}`;
 
     loadingMsg.textContent = "Procesando clips...";
 
-    // Extractor seguro de JSON
     let cleanJson = rawContent;
     const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
     if (jsonMatch) cleanJson = jsonMatch[0];
