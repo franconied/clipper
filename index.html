@@ -188,7 +188,7 @@ async function analyze() {
   const fullPrompt = `Sos un experto en contenido viral. Analizá esta transcripción de "Solo Streaming".
 Detectá entre 6 y 14 clips (15-90 seg) ideales para Reels/TikTok.
 Foco en: ${character}. Programa: ${progLabel}.
-Responde UNICAMENTE con un JSON válido:
+Responde UNICAMENTE con un JSON válido usando estrictamente este formato, sin texto adicional antes ni después:
 {"videoTitle":"titulo","clips":[{"title":"nombre","startTime":"MM:SS","endTime":"MM:SS","category":"viral","score":90,"platform":["Instagram","TikTok"],"reason":"explicación"}]}
 
 TRANSCRIPCION:
@@ -199,7 +199,6 @@ ${transcript}`;
   document.getElementById('results').style.display = 'none';
 
   try {
-    // URL usando la v1 (Estable)
     const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
     
     const resp = await fetch(endpoint, {
@@ -208,9 +207,8 @@ ${transcript}`;
       body: JSON.stringify({
         contents: [{ parts: [{ text: fullPrompt }] }],
         generationConfig: { 
-          max_output_tokens: 8192, 
-          temperature: 0.7,
-          response_mime_type: "application/json" // Corregido: snake_case para v1
+          maxOutputTokens: 8192, 
+          temperature: 0.7
         }
       })
     });
@@ -221,13 +219,19 @@ ${transcript}`;
     }
 
     const data = await resp.json();
-    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    let content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    
+    if (!content) throw new Error('No se obtuvo respuesta de la IA.');
+
+    // Limpiamos los backticks de markdown por si la IA los manda igual
+    content = content.replace(/^```json/g, '').replace(/^```/g, '').replace(/```$/g, '').trim();
+
     const result = JSON.parse(content);
     
     renderResults(result, progLabel, character);
 
   } catch(e) {
-    showError(e.message || 'Error al analizar.');
+    showError(e.message || 'Error al analizar el JSON.');
   } finally {
     document.querySelector('.btn-main').disabled = false;
     document.getElementById('loading').style.display = 'none';
