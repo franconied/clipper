@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CLIPPER — Solo Streaming</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #222222;
+    --accent: #e8ff3d;
+    --accent2: #ff4d6d;
+    --text: #f0f0f0;
+    --muted: #555;
+    --green: #3dffa0;
+    --orange: #ff8c42;
+    --blue: #42a8ff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  .noise {
+    position: fixed; inset: 0; pointer-events: none; z-index: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.4;
+  }
+  .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark { width: 36px; height: 36px; background: var(--accent); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
+  .logo-mark svg { width: 20px; height: 20px; }
+  .logo-text { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; }
+  .logo-text span { color: var(--accent); }
+  .badge { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); border: 1px solid var(--border); padding: 4px 10px; border-radius: 4px; }
+  .step-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+  input[type="text"], textarea, select {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    padding: 10px 14px; outline: none; transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, textarea:focus, select:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 130px; line-height: 1.5; }
+  select option { background: #1a1a1a; }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 8px; line-height: 1.5; }
+  .hint strong { color: #888; }
+  .btn-main {
+    width: 100%; padding: 16px; background: var(--accent); color: #000;
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
+    border: none; border-radius: 10px; cursor: pointer; letter-spacing: 0.02em;
+    transition: transform 0.15s, opacity 0.15s; margin-top: 0.5rem;
+  }
+  .btn-main:hover { transform: translateY(-1px); opacity: 0.92; }
+  .btn-main:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+  #loading { display: none; text-align: center; padding: 3rem 0; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 1rem; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--muted); }
+  #error-box { display: none; background: #1a0a0a; border: 1px solid #4d1a1a; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; color: var(--accent2); font-size: 14px; font-family: 'JetBrains Mono', monospace; }
+  #results { display: none; }
+  .results-title { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+  .results-meta { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); margin-bottom: 1.5rem; }
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 1.5rem; }
+  .stat { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem; text-align: center; }
+  .stat-n { font-size: 32px; font-weight: 800; line-height: 1; }
+  .stat-n.accent { color: var(--accent); }
+  .stat-n.ig { color: #e1306c; }
+  .stat-n.tk { color: #69c9d0; }
+  .stat-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .clips-list { display: flex; flex-direction: column; gap: 12px; }
+  .clip-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.25rem; transition: border-color 0.2s; }
+  .clip-card:hover { border-color: #333; }
+  .clip-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+  .clip-num { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); min-width: 24px; padding-top: 2px; }
+  .clip-body { flex: 1; }
+  .clip-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; line-height: 1.3; }
+  .clip-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .clip-time { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--muted); }
+  .clip-dur { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: #444; }
+  .tag { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 20px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .tag-viral { background: #2d0a0a; color: var(--accent2); border: 1px solid #4d1a1a; }
+  .tag-gracioso { background: #1a1200; color: var(--orange); border: 1px solid #3d2800; }
+  .tag-debate { background: #001a2d; color: var(--blue); border: 1px solid #00324d; }
+  .tag-frase { background: #0a1a0a; color: var(--green); border: 1px solid #1a3d1a; }
+  .plat { font-size: 10px; padding: 2px 7px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; }
+  .plat-ig { background: #2d0a18; color: #e1306c; border: 1px solid #4d1a30; }
+  .plat-tk { background: #001a1a; color: #69c9d0; border: 1px solid #003333; }
+  .score-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
+  .score-bar-bg { flex: 1; height: 3px; background: var(--border); border-radius: 2px; max-width: 100px; }
+  .score-bar-fill { height: 3px; border-radius: 2px; background: var(--accent); }
+  .score-val { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--muted); }
+  .clip-reason { font-size: 13px; color: #888; line-height: 1.5; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+  .copy-btn { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 4px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .copy-btn.copied { border-color: var(--green); color: var(--green); }
+  .export-all { margin-top: 1.5rem; text-align: right; }
+  .btn-export { font-family: 'JetBrains Mono', monospace; font-size: 12px; padding: 10px 20px; background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+  .btn-export:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-export.copied { border-color: var(--green); color: var(--green); }
+  .helper-box { background: #0f0f00; border: 1px solid #2a2a00; border-radius: 10px; padding: 1rem 1.25rem; margin-bottom: 1rem; }
+  .helper-title { font-size: 12px; font-weight: 700; color: var(--accent); margin-bottom: 6px; }
+  .helper-steps { font-size: 12px; color: #888; line-height: 2; font-family: 'JetBrains Mono', monospace; }
+  .helper-steps b { color: #aaa; }
+</style>
+</head>
+<body>
+<div class="noise"></div>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-mark">
+        <svg viewBox="0 0 20 20" fill="none">
+          <path d="M4 4l8 6-8 6V4z" fill="#000"/>
+          <rect x="14" y="4" width="2" height="12" rx="1" fill="#000"/>
+        </svg>
+      </div>
+      <div class="logo-text">CLIP<span>PER</span></div>
+    </div>
+    <div class="badge">Solo Streaming</div>
+  </header>
+
+  <div class="card">
+    <div class="step-label">Nuevo análisis</div>
+    <div style="margin-bottom:1rem;">
+      <label>URL DEL PROGRAMA</label>
+      <input type="text" id="yt-url" placeholder="https://www.youtube.com/watch?v=..." />
+    </div>
+    <div class="grid-2" style="margin-bottom:1rem;">
+      <div>
+        <label>PROGRAMA</label>
+        <select id="program-select" onchange="filterCharacters()">
+          <option value="">Seleccionar programa...</option>
+          <option value="noticias">Solo Noticias (8-9hs)</option>
+          <option value="musica">Solo Música (9-10hs)</option>
+          <option value="convos">Solo con Vos (10-12hs)</option>
+          <option value="magazine">Solo Magazine (12-14hs)</option>
+          <option value="porhoy1">Solo Por Hoy (14-16hs)</option>
+          <option value="porhoy2">Solo con Nicki (16-18hs)</option>
+          <option value="futbol">Solo Fútbol (18-20hs)</option>
+        </select>
+      </div>
+      <div>
+        <label>PERSONAJE FOCO</label>
+        <select id="character-select">
+          <option value="todos">Todos</option>
+        </select>
+      </div>
+    </div>
+    <div>
+      <label>TRANSCRIPCIÓN DEL VIDEO</label>
+      <div class="helper-box">
+        <div class="helper-title">📋 Cómo copiar la transcripción de YouTube</div>
+        <div class="helper-steps">
+          <b>1.</b> Abrí el video en YouTube<br>
+          <b>2.</b> Click en los tres puntitos <b>···</b> debajo del video<br>
+          <b>3.</b> Click en <b>"Mostrar transcripción"</b><br>
+          <b>4.</b> Seleccioná todo el texto y pegalo acá
+        </div>
+      </div>
+      <textarea id="transcript" placeholder="Pegá acá la transcripción completa con timestamps..."></textarea>
+    </div>
+    <button class="btn-main" onclick="analyze()">⚡ ANALIZAR CLIPS</button>
+  </div>
+
+  <div id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">Analizando con IA...</div>
+  </div>
+
+  <div id="error-box"></div>
+
+  <div id="results">
+    <div class="results-title" id="res-title"></div>
+    <div class="results-meta" id="res-meta"></div>
+    <div class="stats">
+      <div class="stat"><div class="stat-n accent" id="stat-total">0</div><div class="stat-label">TOTAL CLIPS</div></div>
+      <div class="stat"><div class="stat-n ig" id="stat-ig">0</div><div class="stat-label">INSTAGRAM</div></div>
+      <div class="stat"><div class="stat-n tk" id="stat-tk">0</div><div class="stat-label">TIKTOK</div></div>
+    </div>
+    <div class="clips-list" id="clips-list"></div>
+    <div class="export-all">
+      <button class="btn-export" id="export-all-btn" onclick="exportAll()">Copiar todos los timestamps</button>
+    </div>
+  </div>
+
+</div>
+<script>
+const GEMINI_KEY = "AIzaSyBnrzYF9pjMkWth6SVYBbWth6crBwdezpw";
+
+const PROGRAMS = {
+  noticias: { label: "Solo Noticias", chars: ["Eleonora Perez Caressi","Santiago Do Rego"] },
+  musica:   { label: "Solo Música",   chars: ["Juani Martinez"] },
+  convos:   { label: "Solo con Vos",  chars: ["Rama","Abru","Tery Langer","Martu","Barbie"] },
+  magazine: { label: "Solo Magazine", chars: ["Sofia Macaggi","GuiGui","Gonzalo Sorbo"] },
+  porhoy1:  { label: "Solo Por Hoy 14hs", chars: ["Lio Ferro","Luchi","Julian Serrano","Martin Salwe"] },
+  porhoy2:  { label: "Solo con Nicki", chars: ["Nicole Neumann","Gege Neumann","Justi Scasso","Juan Otero"] },
+  futbol:   { label: "Solo Fútbol",   chars: ["Rama","Agos Scalisse","Milton Re","Bichi Fuertes","Pichi Erber"] }
+};
+
+const CHARACTER_PROFILES = {
+  "Eleonora Perez Caressi": "Conductora de noticias. Tono firme y profesional. Sus mejores clips: cuando da una opinion contundente, cuando se indigna con una noticia, o cuando suelta una frase memorable al aire.",
+  "Santiago Do Rego": "Co-conductor de noticias. Dinamico y directo. Sus mejores clips: debates con Eleonora, momentos de humor involuntario, frases que resumen bien una noticia polemica.",
+  "Nicole Neumann": "Modelo y figura publica iconica. Habla de moda, vida saludable, familia y farándula. Sus mejores clips: opiniones inesperadas sobre temas de actualidad, momentos donde reacciona a algo que la sorprende, confesiones personales o anecdotas de su vida, cuando se rie a carcajadas.",
+  "Gege Neumann": "Hermana de Nicole. Personalidad mas relajada y humoristica. Sus mejores clips: cuando choca con Nicole, momentos graciosos, reacciones espontaneas.",
+  "Justi Scasso": "Conductora del programa. Hace preguntas picantes y lleva el ritmo. Sus mejores clips: cuando incomoda al invitado con una pregunta, cuando reacciona con sorpresa, momentos de humor con el panel.",
+  "Juan Otero": "Figura de farándula y entretenimiento. Habla de su vida personal, relaciones, noche. Sus mejores clips: confesiones inesperadas, anecdotas escandalosas, momentos donde suelta algo que nadie esperaba.",
+  "Rama": "Conductor energico. Presente en Solo con Vos y Solo Futbol. Sus mejores clips: reacciones exageradas, humor fisico, debates acalorados.",
+  "Abru": "Parte del panel de Solo con Vos. Sus mejores clips: momentos emotivos, confesiones personales, humor genuino.",
+  "Tery Langer": "Panel de Solo con Vos. Sus mejores clips: opiniones directas, debates, frases quotables.",
+  "Martu": "Panel de Solo con Vos. Sus mejores clips: reacciones graciosas, momentos de sorpresa.",
+  "Barbie": "Panel de Solo con Vos. Sus mejores clips: humor, anecdotas personales.",
+  "Sofia Macaggi": "Conductora de Solo Magazine. Contenido lifestyle. Sus mejores clips: consejos que sorprenden, humor natural, momentos donde revela algo personal.",
+  "GuiGui": "Panel de Solo Magazine. Sus mejores clips: humor y reacciones.",
+  "Gonzalo Sorbo": "Panel de Solo Magazine. Sus mejores clips: opiniones y debate.",
+  "Agos Scalisse": "Periodista deportiva de Solo Futbol. Sus mejores clips: analisis fuerte, debates con los futboleros del panel, momentos donde planta posicion.",
+  "Milton Re": "Panel de Solo Futbol. Sus mejores clips: predicciones, debates, pasion por el futbol.",
+  "Bichi Fuertes": "Panel de Solo Futbol. Conocido por sus opiniones directas. Sus mejores clips: cuando se calienta en un debate, frases contundentes, humor.",
+  "Pichi Erber": "Panel de Solo Futbol. Sus mejores clips: analisis tecnico, momentos de pasion.",
+  "Lio Ferro": "Conductor de Solo Por Hoy. Sus mejores clips: humor, conduccion dinamica.",
+  "Luchi": "Panel de Solo Por Hoy. Sus mejores clips: reacciones, momentos graciosos.",
+  "Julian Serrano": "Panel de Solo Por Hoy. Figura joven. Sus mejores clips: reacciones, humor, momentos virales.",
+  "Martin Salwe": "Panel de Solo Por Hoy. Sus mejores clips: humor, anecdotas."
+};
+
+let allClips = [];
+
+function filterCharacters() {
+  const prog = document.getElementById('program-select').value;
+  const sel = document.getElementById('character-select');
+  sel.innerHTML = '<option value="todos">Todos</option>';
+  if (prog && PROGRAMS[prog]) {
+    PROGRAMS[prog].chars.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('error-box');
+  el.textContent = '⚠ ' + msg;
+  el.style.display = 'block';
+}
+function hideError() { document.getElementById('error-box').style.display = 'none'; }
+
+async function analyze() {
+  hideError();
+  const url = document.getElementById('yt-url').value.trim();
+  const transcript = document.getElementById('transcript').value.trim();
+  const program = document.getElementById('program-select').value;
+  const character = document.getElementById('character-select').value;
+
+  if (!transcript) { showError('Pegá la transcripción del video.'); return; }
+
+  const progLabel = program ? (PROGRAMS[program]?.label || '') : '';
+  const charLabel = character === 'todos' ? 'todos los conductores' : character;
+  const charProfile = CHARACTER_PROFILES[character] || '';
+
+  const systemPrompt = `Sos un experto en redes sociales y creacion de contenido viral para Instagram Reels y TikTok del canal Solo Streaming de Solo Deportes (Argentina).
+
+PROGRAMAS:
+- Solo Noticias (8-9hs): Eleonora Perez Caressi, Santiago Do Rego. Tono informativo. Clips: opiniones fuertes, tension, frases contundentes.
+- Solo Musica (9-10hs): Juani Martinez. Clips: momentos emotivos, anecdotas musicales.
+- Solo con Vos (10-12hs): Rama, Abru, Tery Langer, Martu, Barbie. Magazine entretenimiento. Clips: reacciones graciosas, debates, confesiones, momentos emotivos.
+- Solo Magazine (12-14hs): Sofia Macaggi, GuiGui, Gonzalo Sorbo. Lifestyle. Clips: consejos utiles, humor natural, sorpresas.
+- Solo Por Hoy (14-16hs): Lio Ferro, Luchi, Julian Serrano, Martin Salwe. Entretenimiento. Clips: humor, reacciones virales.
+- Solo con Nicki (16-18hs): Nicole Neumann, Gege Neumann, Justi Scasso, Juan Otero. Showbiz y farandula. Clips: opiniones polemicas, revelaciones, momentos emotivos, humor.
+- Solo Futbol (18-20hs): Rama, Agos Scalisse, Milton Re, Bichi Fuertes, Pichi Erber. Deportivo. Clips: debates, predicciones, pasion futbolera.
+
+PROGRAMA ACTUAL: ${progLabel || 'No especificado'}
+PERSONAJE FOCO: ${charLabel}
+${charProfile ? `PERFIL DEL PERSONAJE: ${charProfile}` : ''}
+
+CRITERIOS PARA DETECTAR UN BUEN CLIP:
+- Momento de sorpresa genuina o reaccion inesperada
+- Confesion o revelacion personal
+- Opinion polemica o frase contundente
+- Momento gracioso o de humor espontaneo
+- Debate que se calienta
+- Frase memorable o quoteable
+- Momento que genera empatia o emocion
+
+REGLAS TECNICAS:
+- Instagram Reels: 15-90 segundos (ideal 30-60s)
+- TikTok: 15-60 segundos (ideal 15-30s)
+- Un clip puede servir para ambas plataformas
+- Categorias: "viral", "gracioso", "debate", "frase"
+- Score 1-100: viral potential + engagement + shareability + coherencia con el tono del programa
+- Entre 6 y 14 clips por video
+- Priorizá momentos donde el personaje foco tiene protagonismo
+- Los timestamps deben coincidir exactamente con la transcripcion
+
+Responde UNICAMENTE con JSON valido sin markdown ni backticks:
+{"videoTitle":"titulo descriptivo","clips":[{"title":"titulo corto y llamativo","startTime":"MM:SS","endTime":"MM:SS","category":"viral","score":88,"platform":["Instagram","TikTok"],"reason":"explicacion breve y directa de por que funciona en redes, como si se lo contaras a un colega"}]}`;
+
+  const userPrompt = `Programa: ${progLabel}. Personaje foco: ${charLabel}.\nURL: ${url}\n\nTRANSCRIPCION:\n${transcript}`;
+
+  document.querySelector('.btn-main').disabled = true;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('results').style.display = 'none';
+
+  try {
+    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents: [{ parts: [{ text: userPrompt }] }],
+        generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
+      })
+    });
+
+    if (!resp.ok) {
+      const err = await resp.json();
+      throw new Error(err?.error?.message || 'Error de API');
+    }
+
+    const data = await resp.json();
+    const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    if (!content) throw new Error('No se obtuvo respuesta de la IA.');
+
+    const cleaned = content.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
+    const result = JSON.parse(cleaned);
+    renderResults(result, progLabel, charLabel);
+
+  } catch(e) {
+    showError(e.message || 'Error al analizar. Revisá la transcripción e intentá de nuevo.');
+  } finally {
+    document.querySelector('.btn-main').disabled = false;
+    document.getElementById('loading').style.display = 'none';
+  }
+}
+
+function renderResults(result, prog, char) {
+  allClips = (result.clips || []).sort((a,b) => (b.score||0)-(a.score||0));
+  const ig = allClips.filter(c => c.platform?.includes('Instagram')).length;
+  const tk = allClips.filter(c => c.platform?.includes('TikTok')).length;
+
+  document.getElementById('res-title').textContent = result.videoTitle || 'Video analizado';
+  document.getElementById('res-meta').textContent = `${prog} · ${char} · ${allClips.length} clips detectados`;
+  document.getElementById('stat-total').textContent = allClips.length;
+  document.getElementById('stat-ig').textContent = ig;
+  document.getElementById('stat-tk').textContent = tk;
+
+  const list = document.getElementById('clips-list');
+  list.innerHTML = '';
+  const catClass = { viral:'tag-viral', gracioso:'tag-gracioso', debate:'tag-debate', frase:'tag-frase' };
+  const catEmoji = { viral:'🔴', gracioso:'😂', debate:'🔵', frase:'💬' };
+
+  allClips.forEach((clip, i) => {
+    const plats = (clip.platform||[]).map(p =>
+      p==='Instagram' ? `<span class="plat plat-ig">IG</span>` : `<span class="plat plat-tk">TK</span>`
+    ).join('');
+    const cat = clip.category || 'viral';
+    const scoreW = Math.min(100, Math.max(0, clip.score||0));
+    const card = document.createElement('div');
+    card.className = 'clip-card';
+    card.innerHTML = `
+      <div class="clip-top">
+        <div class="clip-num">#${i+1}</div>
+        <div class="clip-body">
+          <div class="clip-title">${clip.title||''}</div>
+          <div class="clip-row">
+            <span class="clip-time">${clip.startTime||''} → ${clip.endTime||''}</span>
+            <span class="clip-dur">${getDur(clip.startTime,clip.endTime)}</span>
+            <span class="tag ${catClass[cat]||'tag-viral'}">${catEmoji[cat]||''} ${cat}</span>
+            ${plats}
+            <button class="copy-btn" onclick="copyClip(this,${i})">copiar</button>
+          </div>
+          <div class="score-row">
+            <div class="score-bar-bg"><div class="score-bar-fill" style="width:${scoreW}%"></div></div>
+            <span class="score-val">${scoreW}/100</span>
+          </div>
+        </div>
+      </div>
+      ${clip.reason ? `<div class="clip-reason">${clip.reason}</div>` : ''}
+    `;
+    list.appendChild(card);
+  });
+
+  document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+function getDur(start, end) {
+  if (!start||!end) return '';
+  const toS = t => { const p=t.split(':').map(Number); return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1]; };
+  const s = toS(end)-toS(start);
+  if (s<=0) return '';
+  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+}
+
+function copyClip(btn, i) {
+  const c = allClips[i];
+  const text = `#${i+1} ${c.title}\n⏱ ${c.startTime} → ${c.endTime} (${getDur(c.startTime,c.endTime)})\n📊 Score: ${c.score}/100 | ${(c.platform||[]).join(' + ')}\n🏷 ${c.category}\n💬 ${c.reason||''}`;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ copiado'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function exportAll() {
+  const lines = allClips.map((c,i) =>
+    `#${i+1} ${c.title}\n⏱ ${c.startTime} → ${c.endTime} (${getDur(c.startTime,c.endTime)})\n📊 Score: ${c.score}/100 | ${(c.platform||[]).join(' + ')}\n🏷 ${c.category}\n💬 ${c.reason||''}\n`
+  ).join('\n');
+  navigator.clipboard.writeText(lines).then(() => {
+    const btn = document.getElementById('export-all-btn');
+    btn.textContent = '✓ Copiado'; btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar todos los timestamps'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+</script>
+</body>
+</html>
