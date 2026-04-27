@@ -158,8 +158,8 @@
         <div class="helper-title">📋 Cómo copiar la transcripción de YouTube</div>
         <div class="helper-steps">
           <b>1.</b> Abrí el video en YouTube<br>
-          <b>2.</b> Click en los tres puntitos <b>···</b> debajo del video<br>
-          <b>3.</b> Click en <b>"Mostrar transcripción"</b><br>
+          <b>2.</b> Click en el botón <b>"...más"</b> en la descripción<br>
+          <b>3.</b> Bajá y click en <b>"Mostrar transcripción"</b><br>
           <b>4.</b> Seleccioná todo el texto y pegalo acá
         </div>
       </div>
@@ -191,6 +191,7 @@
 
 </div>
 <script>
+// API KEY DE GOOGLE AI STUDIO
 const GEMINI_KEY = "AIzaSyBnrzYF9pjMkWth6SVYBbWth6crBwdezpw";
 
 const PROGRAMS = {
@@ -204,28 +205,16 @@ const PROGRAMS = {
 };
 
 const CHARACTER_PROFILES = {
-  "Eleonora Perez Caressi": "Conductora de noticias. Tono firme y profesional. Sus mejores clips: cuando da una opinion contundente, cuando se indigna con una noticia, o cuando suelta una frase memorable al aire.",
-  "Santiago Do Rego": "Co-conductor de noticias. Dinamico y directo. Sus mejores clips: debates con Eleonora, momentos de humor involuntario, frases que resumen bien una noticia polemica.",
-  "Nicole Neumann": "Modelo y figura publica iconica. Habla de moda, vida saludable, familia y farándula. Sus mejores clips: opiniones inesperadas sobre temas de actualidad, momentos donde reacciona a algo que la sorprende, confesiones personales o anecdotas de su vida, cuando se rie a carcajadas.",
-  "Gege Neumann": "Hermana de Nicole. Personalidad mas relajada y humoristica. Sus mejores clips: cuando choca con Nicole, momentos graciosos, reacciones espontaneas.",
-  "Justi Scasso": "Conductora del programa. Hace preguntas picantes y lleva el ritmo. Sus mejores clips: cuando incomoda al invitado con una pregunta, cuando reacciona con sorpresa, momentos de humor con el panel.",
-  "Juan Otero": "Figura de farándula y entretenimiento. Habla de su vida personal, relaciones, noche. Sus mejores clips: confesiones inesperadas, anecdotas escandalosas, momentos donde suelta algo que nadie esperaba.",
-  "Rama": "Conductor energico. Presente en Solo con Vos y Solo Futbol. Sus mejores clips: reacciones exageradas, humor fisico, debates acalorados.",
-  "Abru": "Parte del panel de Solo con Vos. Sus mejores clips: momentos emotivos, confesiones personales, humor genuino.",
-  "Tery Langer": "Panel de Solo con Vos. Sus mejores clips: opiniones directas, debates, frases quotables.",
-  "Martu": "Panel de Solo con Vos. Sus mejores clips: reacciones graciosas, momentos de sorpresa.",
-  "Barbie": "Panel de Solo con Vos. Sus mejores clips: humor, anecdotas personales.",
-  "Sofia Macaggi": "Conductora de Solo Magazine. Contenido lifestyle. Sus mejores clips: consejos que sorprenden, humor natural, momentos donde revela algo personal.",
-  "GuiGui": "Panel de Solo Magazine. Sus mejores clips: humor y reacciones.",
-  "Gonzalo Sorbo": "Panel de Solo Magazine. Sus mejores clips: opiniones y debate.",
-  "Agos Scalisse": "Periodista deportiva de Solo Futbol. Sus mejores clips: analisis fuerte, debates con los futboleros del panel, momentos donde planta posicion.",
-  "Milton Re": "Panel de Solo Futbol. Sus mejores clips: predicciones, debates, pasion por el futbol.",
-  "Bichi Fuertes": "Panel de Solo Futbol. Conocido por sus opiniones directas. Sus mejores clips: cuando se calienta en un debate, frases contundentes, humor.",
-  "Pichi Erber": "Panel de Solo Futbol. Sus mejores clips: analisis tecnico, momentos de pasion.",
-  "Lio Ferro": "Conductor de Solo Por Hoy. Sus mejores clips: humor, conduccion dinamica.",
-  "Luchi": "Panel de Solo Por Hoy. Sus mejores clips: reacciones, momentos graciosos.",
-  "Julian Serrano": "Panel de Solo Por Hoy. Figura joven. Sus mejores clips: reacciones, humor, momentos virales.",
-  "Martin Salwe": "Panel de Solo Por Hoy. Sus mejores clips: humor, anecdotas."
+  "Eleonora Perez Caressi": "Conductora de noticias. Tono firme y profesional.",
+  "Santiago Do Rego": "Co-conductor de noticias. Dinamico y directo.",
+  "Nicole Neumann": "Modelo y figura publica. Habla de moda, vida saludable y farándula.",
+  "Gege Neumann": "Hermana de Nicole. Personalidad relajada y humorística.",
+  "Justi Scasso": "Conductora. Hace preguntas picantes y lleva el ritmo.",
+  "Juan Otero": "Figura de farándula. Habla de su vida personal y anécdotas.",
+  "Rama": "Conductor enérgico. Reacciones exageradas y humor.",
+  "Abru": "Panelista. Momentos emotivos y confesiones.",
+  "Agos Scalisse": "Periodista deportiva. Análisis fuerte y debates.",
+  "Bichi Fuertes": "Ex futbolista. Opiniones directas y frases contundentes."
 };
 
 let allClips = [];
@@ -263,57 +252,41 @@ async function analyze() {
   const charLabel = character === 'todos' ? 'todos los conductores' : character;
   const charProfile = CHARACTER_PROFILES[character] || '';
 
-  const systemPrompt = `Sos un experto en redes sociales y creacion de contenido viral para Instagram Reels y TikTok del canal Solo Streaming de Solo Deportes (Argentina).
+  const fullPrompt = `Sos un experto en redes sociales para el canal Solo Streaming de Solo Deportes (Argentina).
+  
+OBJETIVO: Detectar los mejores clips para Instagram Reels y TikTok.
+PROGRAMA: ${progLabel}.
+PERSONAJE FOCO: ${charLabel}.
+${charProfile ? `PERFIL: ${charProfile}` : ''}
 
-PROGRAMAS:
-- Solo Noticias (8-9hs): Eleonora Perez Caressi, Santiago Do Rego. Tono informativo. Clips: opiniones fuertes, tension, frases contundentes.
-- Solo Musica (9-10hs): Juani Martinez. Clips: momentos emotivos, anecdotas musicales.
-- Solo con Vos (10-12hs): Rama, Abru, Tery Langer, Martu, Barbie. Magazine entretenimiento. Clips: reacciones graciosas, debates, confesiones, momentos emotivos.
-- Solo Magazine (12-14hs): Sofia Macaggi, GuiGui, Gonzalo Sorbo. Lifestyle. Clips: consejos utiles, humor natural, sorpresas.
-- Solo Por Hoy (14-16hs): Lio Ferro, Luchi, Julian Serrano, Martin Salwe. Entretenimiento. Clips: humor, reacciones virales.
-- Solo con Nicki (16-18hs): Nicole Neumann, Gege Neumann, Justi Scasso, Juan Otero. Showbiz y farandula. Clips: opiniones polemicas, revelaciones, momentos emotivos, humor.
-- Solo Futbol (18-20hs): Rama, Agos Scalisse, Milton Re, Bichi Fuertes, Pichi Erber. Deportivo. Clips: debates, predicciones, pasion futbolera.
+CRITERIOS:
+- Momentos de sorpresa, confesiones, polémica, humor o debates calientes.
+- Duración: 15-90 segundos.
+- Entre 6 y 14 clips.
 
-PROGRAMA ACTUAL: ${progLabel || 'No especificado'}
-PERSONAJE FOCO: ${charLabel}
-${charProfile ? `PERFIL DEL PERSONAJE: ${charProfile}` : ''}
+Responde UNICAMENTE con un JSON válido con esta estructura:
+{"videoTitle":"titulo","clips":[{"title":"nombre","startTime":"MM:SS","endTime":"MM:SS","category":"viral","score":90,"platform":["Instagram","TikTok"],"reason":"explicación"}]}
 
-CRITERIOS PARA DETECTAR UN BUEN CLIP:
-- Momento de sorpresa genuina o reaccion inesperada
-- Confesion o revelacion personal
-- Opinion polemica o frase contundente
-- Momento gracioso o de humor espontaneo
-- Debate que se calienta
-- Frase memorable o quoteable
-- Momento que genera empatia o emocion
-
-REGLAS TECNICAS:
-- Instagram Reels: 15-90 segundos (ideal 30-60s)
-- TikTok: 15-60 segundos (ideal 15-30s)
-- Un clip puede servir para ambas plataformas
-- Categorias: "viral", "gracioso", "debate", "frase"
-- Score 1-100: viral potential + engagement + shareability + coherencia con el tono del programa
-- Entre 6 y 14 clips por video
-- Priorizá momentos donde el personaje foco tiene protagonismo
-- Los timestamps deben coincidir exactamente con la transcripcion
-
-Responde UNICAMENTE con JSON valido sin markdown ni backticks:
-{"videoTitle":"titulo descriptivo","clips":[{"title":"titulo corto y llamativo","startTime":"MM:SS","endTime":"MM:SS","category":"viral","score":88,"platform":["Instagram","TikTok"],"reason":"explicacion breve y directa de por que funciona en redes, como si se lo contaras a un colega"}]}`;
-
-  const userPrompt = `Programa: ${progLabel}. Personaje foco: ${charLabel}.\nURL: ${url}\n\nTRANSCRIPCION:\n${transcript}`;
+TRANSCRIPCION:
+${transcript}`;
 
   document.querySelector('.btn-main').disabled = true;
   document.getElementById('loading').style.display = 'block';
   document.getElementById('results').style.display = 'none';
 
   try {
-    const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
+    const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
+    
+    const resp = await fetch(endpoint, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ parts: [{ text: userPrompt }] }],
-        generationConfig: { maxOutputTokens: 8192, temperature: 0.7 }
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: { 
+          maxOutputTokens: 8192, 
+          temperature: 0.7,
+          responseMimeType: "application/json"
+        }
       })
     });
 
@@ -326,12 +299,12 @@ Responde UNICAMENTE con JSON valido sin markdown ni backticks:
     const content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
     if (!content) throw new Error('No se obtuvo respuesta de la IA.');
 
-    const cleaned = content.replace(/```json\n?/g,'').replace(/```\n?/g,'').trim();
-    const result = JSON.parse(cleaned);
+    const result = JSON.parse(content);
     renderResults(result, progLabel, charLabel);
 
   } catch(e) {
-    showError(e.message || 'Error al analizar. Revisá la transcripción e intentá de nuevo.');
+    console.error(e);
+    showError(e.message || 'Error al analizar. Intentá de nuevo.');
   } finally {
     document.querySelector('.btn-main').disabled = false;
     document.getElementById('loading').style.display = 'none';
@@ -344,7 +317,7 @@ function renderResults(result, prog, char) {
   const tk = allClips.filter(c => c.platform?.includes('TikTok')).length;
 
   document.getElementById('res-title').textContent = result.videoTitle || 'Video analizado';
-  document.getElementById('res-meta').textContent = `${prog} · ${char} · ${allClips.length} clips detectados`;
+  document.getElementById('res-meta').textContent = `${prog} · ${char} · ${allClips.length} clips`;
   document.getElementById('stat-total').textContent = allClips.length;
   document.getElementById('stat-ig').textContent = ig;
   document.getElementById('stat-tk').textContent = tk;
@@ -352,13 +325,11 @@ function renderResults(result, prog, char) {
   const list = document.getElementById('clips-list');
   list.innerHTML = '';
   const catClass = { viral:'tag-viral', gracioso:'tag-gracioso', debate:'tag-debate', frase:'tag-frase' };
-  const catEmoji = { viral:'🔴', gracioso:'😂', debate:'🔵', frase:'💬' };
 
   allClips.forEach((clip, i) => {
     const plats = (clip.platform||[]).map(p =>
       p==='Instagram' ? `<span class="plat plat-ig">IG</span>` : `<span class="plat plat-tk">TK</span>`
     ).join('');
-    const cat = clip.category || 'viral';
     const scoreW = Math.min(100, Math.max(0, clip.score||0));
     const card = document.createElement('div');
     card.className = 'clip-card';
@@ -369,8 +340,7 @@ function renderResults(result, prog, char) {
           <div class="clip-title">${clip.title||''}</div>
           <div class="clip-row">
             <span class="clip-time">${clip.startTime||''} → ${clip.endTime||''}</span>
-            <span class="clip-dur">${getDur(clip.startTime,clip.endTime)}</span>
-            <span class="tag ${catClass[cat]||'tag-viral'}">${catEmoji[cat]||''} ${cat}</span>
+            <span class="tag ${catClass[clip.category]||'tag-viral'}">${clip.category}</span>
             ${plats}
             <button class="copy-btn" onclick="copyClip(this,${i})">copiar</button>
           </div>
@@ -386,34 +356,31 @@ function renderResults(result, prog, char) {
   });
 
   document.getElementById('results').style.display = 'block';
-  document.getElementById('results').scrollIntoView({ behavior:'smooth', block:'start' });
+  document.getElementById('results').scrollIntoView({ behavior:'smooth' });
 }
 
 function getDur(start, end) {
   if (!start||!end) return '';
   const toS = t => { const p=t.split(':').map(Number); return p.length===3?p[0]*3600+p[1]*60+p[2]:p[0]*60+p[1]; };
   const s = toS(end)-toS(start);
-  if (s<=0) return '';
-  return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  return s > 0 ? `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}` : '';
 }
 
 function copyClip(btn, i) {
   const c = allClips[i];
-  const text = `#${i+1} ${c.title}\n⏱ ${c.startTime} → ${c.endTime} (${getDur(c.startTime,c.endTime)})\n📊 Score: ${c.score}/100 | ${(c.platform||[]).join(' + ')}\n🏷 ${c.category}\n💬 ${c.reason||''}`;
+  const text = `#${i+1} ${c.title}\n⏱ ${c.startTime} → ${c.endTime}\n📊 Score: ${c.score}/100\n💬 ${c.reason||''}`;
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓ copiado'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'copiar'; btn.classList.remove('copied'); }, 2000);
+    btn.textContent = '✓';
+    setTimeout(() => btn.textContent = 'copiar', 2000);
   });
 }
 
 function exportAll() {
-  const lines = allClips.map((c,i) =>
-    `#${i+1} ${c.title}\n⏱ ${c.startTime} → ${c.endTime} (${getDur(c.startTime,c.endTime)})\n📊 Score: ${c.score}/100 | ${(c.platform||[]).join(' + ')}\n🏷 ${c.category}\n💬 ${c.reason||''}\n`
-  ).join('\n');
+  const lines = allClips.map((c,i) => `#${i+1} ${c.title} (${c.startTime} a ${c.endTime})`).join('\n');
   navigator.clipboard.writeText(lines).then(() => {
     const btn = document.getElementById('export-all-btn');
-    btn.textContent = '✓ Copiado'; btn.classList.add('copied');
-    setTimeout(() => { btn.textContent = 'Copiar todos los timestamps'; btn.classList.remove('copied'); }, 2500);
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = 'Copiar todos los timestamps', 2500);
   });
 }
 </script>
