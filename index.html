@@ -6,26 +6,10 @@
 <title>CLIPPER — Solo Streaming</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --bg: #0a0a0a;
-    --surface: #111111;
-    --surface2: #1a1a1a;
-    --border: #222222;
-    --accent: #e8ff3d;
-    --accent2: #ff4d6d;
-    --text: #f0f0f0;
-    --muted: #555;
-    --green: #3dffa0;
-    --orange: #ff8c42;
-    --blue: #42a8ff;
-  }
+  :root { --bg: #0a0a0a; --surface: #111111; --border: #222222; --accent: #e8ff3d; --accent2: #ff4d6d; --text: #f0f0f0; --muted: #555; --green: #3dffa0; --orange: #ff8c42; --blue: #42a8ff; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: 'Syne', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-  .noise {
-    position: fixed; inset: 0; pointer-events: none; z-index: 0;
-    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-    opacity: 0.4;
-  }
+  .noise { position: fixed; inset: 0; pointer-events: none; z-index: 0; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"); opacity: 0.4; }
   .wrap { position: relative; z-index: 1; max-width: 860px; margin: 0 auto; padding: 2rem 1.5rem 4rem; }
   header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); }
   .logo { display: flex; align-items: center; gap: 12px; }
@@ -37,20 +21,11 @@
   .step-label { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 10px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; margin-bottom: 1.25rem; }
   label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
-  input[type="text"], textarea, select {
-    width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px;
-    padding: 10px 14px; outline: none; transition: border-color 0.2s;
-  }
+  input[type="text"], textarea, select { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 10px 14px; outline: none; transition: border-color 0.2s; }
   textarea { resize: vertical; min-height: 130px; line-height: 1.5; }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   @media (max-width: 600px) { .grid-2 { grid-template-columns: 1fr; } }
-  .btn-main {
-    width: 100%; padding: 16px; background: var(--accent); color: #000;
-    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800;
-    border: none; border-radius: 10px; cursor: pointer; letter-spacing: 0.02em;
-    transition: transform 0.15s, opacity 0.15s; margin-top: 0.5rem;
-  }
+  .btn-main { width: 100%; padding: 16px; background: var(--accent); color: #000; font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; border: none; border-radius: 10px; cursor: pointer; letter-spacing: 0.02em; transition: transform 0.15s, opacity 0.15s; margin-top: 0.5rem; }
   .btn-main:hover { transform: translateY(-1px); opacity: 0.92; }
   .btn-main:disabled { opacity: 0.4; cursor: not-allowed; }
   #loading { display: none; text-align: center; padding: 3rem 0; }
@@ -82,7 +57,8 @@
   .plat-ig { background: #2d0a18; color: #e1306c; border: 1px solid #4d1a30; }
   .plat-tk { background: #001a1a; color: #69c9d0; border: 1px solid #003333; }
   .clip-reason { font-size: 13px; color: #888; line-height: 1.5; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
-  .copy-btn { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 4px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; }
+  .copy-btn { font-family: 'JetBrains Mono', monospace; font-size: 11px; padding: 4px 10px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--muted); cursor: pointer; transition: 0.2s; }
+  .copy-btn:hover { border-color: var(--accent); color: var(--accent); }
 </style>
 </head>
 <body>
@@ -128,8 +104,9 @@
     <button class="btn-main" onclick="analyze()">⚡ ANALIZAR CLIPS</button>
   </div>
 
-  <div id="loading"><div class="spinner"></div><div class="loading-text">Gemini está pensando...</div></div>
+  <div id="loading"><div class="spinner"></div><div class="loading-text" id="loading-msg">Iniciando conexión...</div></div>
   <div id="error-box"></div>
+  
   <div id="results">
     <div class="results-title" id="res-title"></div>
     <div class="results-meta" id="res-meta"></div>
@@ -179,7 +156,7 @@ function showError(msg) {
 async function analyze() {
   document.getElementById('error-box').style.display = 'none';
   const transcript = document.getElementById('transcript').value.trim();
-  if (!transcript) { showError('Pegá la transcripción.'); return; }
+  if (!transcript) { showError('Pegá la transcripción antes de analizar.'); return; }
 
   const program = document.getElementById('program-select').value;
   const character = document.getElementById('character-select').value;
@@ -188,7 +165,7 @@ async function analyze() {
   const fullPrompt = `Sos un experto en contenido viral. Analizá esta transcripción de "Solo Streaming".
 Detectá entre 6 y 14 clips (15-90 seg) ideales para Reels/TikTok.
 Foco en: ${character}. Programa: ${progLabel}.
-Responde UNICAMENTE con un JSON válido usando estrictamente este formato, sin texto adicional antes ni después:
+Regla ABSOLUTA: Responde UNICAMENTE con un JSON válido. Cero texto introductorio. Formato exacto:
 {"videoTitle":"titulo","clips":[{"title":"nombre","startTime":"MM:SS","endTime":"MM:SS","category":"viral","score":90,"platform":["Instagram","TikTok"],"reason":"explicación"}]}
 
 TRANSCRIPCION:
@@ -197,41 +174,72 @@ ${transcript}`;
   document.querySelector('.btn-main').disabled = true;
   document.getElementById('loading').style.display = 'block';
   document.getElementById('results').style.display = 'none';
+  const loadingMsg = document.getElementById('loading-msg');
 
-  try {
-    const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-    
-    const resp = await fetch(endpoint, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
+  // Sistema de contingencia: Intenta conectar con estos modelos en orden si alguno falla.
+  const modelsToTry = [
+    'gemini-1.5-flash',
+    'gemini-1.5-flash-latest',
+    'gemini-1.5-pro'
+  ];
+
+  let rawContent = null;
+  let lastError = null;
+
+  for (const model of modelsToTry) {
+    try {
+      loadingMsg.textContent = `Conectando con ${model}...`;
+      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${GEMINI_KEY}`;
+      
+      const payload = {
         contents: [{ parts: [{ text: fullPrompt }] }],
         generationConfig: { 
-          maxOutputTokens: 8192, 
-          temperature: 0.7
+          temperature: 0.7,
+          responseMimeType: "application/json" // Formato oficial validado para v1beta
         }
-      })
-    });
+      };
 
-    if (!resp.ok) {
-      const err = await resp.json();
-      throw new Error(err?.error?.message || 'Error de API');
+      const resp = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (resp.ok) {
+        const data = await resp.json();
+        rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (rawContent) break; // Conexión exitosa, salimos del loop
+      } else {
+        const errData = await resp.json();
+        lastError = errData?.error?.message || `Fallo en el modelo ${model}`;
+        console.warn(`Fallback activado: Falló ${model}`, lastError);
+      }
+    } catch (e) {
+      lastError = e.message;
+      console.warn(`Error de red con ${model}`, e);
+    }
+  }
+
+  try {
+    if (!rawContent) {
+      throw new Error("La API rechazó la conexión en todos los modelos. Detalle: " + lastError);
     }
 
-    const data = await resp.json();
-    let content = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!content) throw new Error('No se obtuvo respuesta de la IA.');
+    loadingMsg.textContent = "Procesando resultados...";
 
-    // Limpiamos los backticks de markdown por si la IA los manda igual
-    content = content.replace(/^```json/g, '').replace(/^```/g, '').replace(/```$/g, '').trim();
-
-    const result = JSON.parse(content);
+    // Extracción ultra segura de JSON (por si viene con backticks o texto basura)
+    let cleanJson = rawContent;
+    const jsonMatch = rawContent.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      cleanJson = jsonMatch[0];
+    }
     
+    const result = JSON.parse(cleanJson);
     renderResults(result, progLabel, character);
 
   } catch(e) {
-    showError(e.message || 'Error al analizar el JSON.');
+    console.error("Error completo:", e);
+    showError("Error al procesar los datos: " + e.message);
   } finally {
     document.querySelector('.btn-main').disabled = false;
     document.getElementById('loading').style.display = 'none';
@@ -263,7 +271,7 @@ function renderResults(result, prog, char) {
           <div class="clip-row">
             <span class="clip-time">${clip.startTime} - ${clip.endTime}</span>
             <span class="tag tag-viral">${clip.category}</span>
-            <button class="copy-btn" onclick="copyClip(this, ${i})">copiar</button>
+            <button class="copy-btn" onclick="copyClip(this, ${i})">Copiar info</button>
           </div>
           <div class="clip-reason">${clip.reason}</div>
         </div>
@@ -272,14 +280,15 @@ function renderResults(result, prog, char) {
     list.appendChild(card);
   });
   document.getElementById('results').style.display = 'block';
+  document.getElementById('results').scrollIntoView({ behavior:'smooth' });
 }
 
 function copyClip(btn, i) {
   const c = allClips[i];
-  const text = `${c.title}\n⏱ ${c.startTime} a ${c.endTime}\n💡 ${c.reason}`;
+  const text = `CLIP: ${c.title}\n⏱ ${c.startTime} a ${c.endTime}\n💡 ${c.reason}`;
   navigator.clipboard.writeText(text).then(() => {
-    btn.textContent = '✓';
-    setTimeout(() => btn.textContent = 'copiar', 2000);
+    btn.textContent = '✓ Copiado';
+    setTimeout(() => btn.textContent = 'Copiar info', 2000);
   });
 }
 </script>
