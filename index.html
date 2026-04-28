@@ -135,7 +135,7 @@ function resetKey() {
 
 function ensureKey() {
   if (!GEMINI_KEY || GEMINI_KEY.trim() === "") {
-    GEMINI_KEY = prompt("Pegá acá tu Google API Key para usar el Clipper:\\n(Se guardará en tu navegador)");
+    GEMINI_KEY = prompt("Pegá acá tu Google API Key para usar el Clipper:\n(Se guardará en tu navegador)");
     if (GEMINI_KEY) {
       localStorage.setItem('gemini_clipper_key', GEMINI_KEY.trim());
     }
@@ -223,7 +223,6 @@ ${transcript}`;
       throw new Error("Tu API Key no tiene permisos para usar modelos Gemini.");
     }
 
-    // Ordenamos para probar primero los "flash" (más rápidos y baratos)
     validModels.sort((a, b) => {
       if(a.name.includes('flash') && !b.name.includes('flash')) return -1;
       if(!a.name.includes('flash') && b.name.includes('flash')) return 1;
@@ -233,7 +232,6 @@ ${transcript}`;
     let rawContent = null;
     let lastError = "";
 
-    // BUCLE DE CONTINGENCIA: Si un modelo está saturado (503), prueba con el siguiente de tu lista.
     for (const model of validModels) {
       loadingMsg.textContent = `Intentando con ${model.name.replace('models/', '')}...`;
       const endpoint = `https://generativelanguage.googleapis.com/v1beta/${model.name}:generateContent?key=${GEMINI_KEY}`;
@@ -253,28 +251,30 @@ ${transcript}`;
           rawContent = data?.candidates?.[0]?.content?.parts?.[0]?.text;
           if (rawContent) {
              console.log(`¡Éxito con ${model.name}!`);
-             break; // Salió bien, rompemos el bucle
+             break;
           }
         } else {
           lastError = data?.error?.message || "Error desconocido";
-          console.warn(`El modelo ${model.name} falló o está saturado:`, lastError);
-          // Si falló, simplemente el bucle sigue y prueba el próximo modelo de la lista
         }
       } catch (e) {
         lastError = e.message;
-        console.warn(`Error de conexión con ${model.name}:`, e);
       }
     }
 
     if (!rawContent) {
-       throw new Error(`Todos los servidores de Google están saturados o fallaron. Último error: ${lastError}`);
+       throw new Error(`Todos los servidores fallaron. Último error: ${lastError}`);
     }
 
     loadingMsg.textContent = "Procesando clips...";
 
+    // EXTRACTOR QUIRÚRGICO DE JSON: Ignora cualquier markdown o texto extra
     let cleanJson = rawContent;
-    const jsonMatch = rawContent.match(/\\{[\\s\\S]*\\}/);
-    if (jsonMatch) cleanJson = jsonMatch[0];
+    const startIdx = rawContent.indexOf('{');
+    const endIdx = rawContent.lastIndexOf('}');
+    
+    if (startIdx !== -1 && endIdx !== -1) {
+      cleanJson = rawContent.substring(startIdx, endIdx + 1);
+    }
     
     const result = JSON.parse(cleanJson);
     renderResults(result, progLabel, character);
@@ -327,7 +327,7 @@ function renderResults(result, prog, char) {
 
 function copyClip(btn, i) {
   const c = allClips[i];
-  const text = `CLIP: ${c.title}\\n⏱ ${c.startTime} a ${c.endTime}\\n💡 ${c.reason}`;
+  const text = `CLIP: ${c.title}\n⏱ ${c.startTime} a ${c.endTime}\n💡 ${c.reason}`;
   navigator.clipboard.writeText(text).then(() => {
     btn.textContent = '✓ Copiado';
     setTimeout(() => btn.textContent = 'Copiar info', 2000);
